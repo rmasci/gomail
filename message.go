@@ -320,3 +320,30 @@ func (m *Message) Attach(filename string, settings ...FileSetting) {
 func (m *Message) Embed(filename string, settings ...FileSetting) {
 	m.embedded = m.appendFile(m.embedded, filename, settings)
 }
+
+func (m *Message) pipeFile(list []*file, name string , settings []FileSetting) []*file {
+	f := &file{
+		Name:   filepath.Base(name),
+		Header: make(map[string][]string),
+		CopyFunc: func(w io.Writer) error {
+			if _, err := io.Copy(w, os.Stdin); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	
+	for _, s := range settings {
+		s(f)
+	}
+	
+	if list == nil {
+		return []*file{f}
+	}
+	
+	return append(list, f)
+}
+// Pipe attaches stdin to the email.
+func (m *Message) Pipe(filename string, settings ...FileSetting) {
+	m.attachments = m.pipeFile(m.attachments, filename, settings)
+}
